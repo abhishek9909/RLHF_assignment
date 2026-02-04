@@ -1,4 +1,4 @@
-# RLHF_assignment
+# Homework 3 for CS 690S AI Alignment
 
 You will be using the conda environment that you created in assignment 1. After cloning this repository, navigate to it and then run:
 ```
