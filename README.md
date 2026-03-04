@@ -73,7 +73,7 @@ Now answer the following questions: (1) Was your RLHF method able to learn a bet
 
 ## Submission.
 
-Prepare a PDF report (preferably in LaTeX) with your answers to the questions and submit the PDF along with your code in a zip file on Gradescope.
+Prepare a PDF report with your answers to the questions (preferably typeset in LaTeX) and submit the PDF and code separately on Gradescope under the respective submissions.
 
 ### Acknowledgement
 Based on an assignment originally created by Daniel S. Brown. 
