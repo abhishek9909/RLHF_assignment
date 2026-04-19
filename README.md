@@ -23,9 +23,7 @@ python vpg.py --epochs 10 --checkpoint --checkpoint_dir ./synthetic --render
 
 This will generate 10 and save the RL policy after 10 checkpoints on the CartPole environment. It will render the first episode of each epoch so you can see its performance visually. We won't train the RL policy to convergence, but if you ran it for more than 10 checkpoints it would eventually reach a return of 200 (the ground truth cartpole reward function is +1 every time step that the cart stays on the track and the pole stays roughly upright). You can learn more about CartPole here: https://www.gymlibrary.dev/environments/classic_control/cart_pole/
 
-
 ## Part 2: Create pairwise preferences and train a reward function network
-
 
 Open ```utils.py``` and  ```offline_reward_learning.py```. 
 In ```utils.py``` you will need to code up a reward function network. CartPole is pretty simple so it doesn't need to be very complicated. A 2-layer feed forward network is sufficient. There are a few hints in the comments about what to do.
@@ -39,7 +37,6 @@ python .\offline_reward_learning.py
 ```
 
 This should save the learned reward function weights in a file called ```reward.params```.
-
 
 
 ## Part 3: Run RL on the learned reward function

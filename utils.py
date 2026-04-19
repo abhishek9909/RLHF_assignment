@@ -5,6 +5,9 @@ from torch.distributions.categorical import Categorical
 from torch.optim import Adam
 import numpy as np
 
+INPUT_DIM = 4
+HIDDEN_DIMS = [4]
+OUTPUT_DIM = 1
 
 # Helper function to construct a feedforward multilayer perception that you can use in class Net if you want.
 # Do NOT modify, as this is used to construct the policy network.
@@ -29,13 +32,18 @@ class Net(nn.Module):
         #TODO define network architecture. 
         # Feel free to use the mlp helper function above or construct the network and forward() manually like you did in assignment 1.
         # Hint: states in cartpole are 4-dimensional (x,xdot,theta,thetadot)
-        # https://www.gymlibrary.dev/environments/classic_control/cart_pole/
+        # https://www.gymlibrary.dev/environments/classic_control/cart_pole/        
+        self.reward_net = mlp(sizes=[INPUT_DIM]+HIDDEN_DIMS+[OUTPUT_DIM])
    
 
     def predict_return(self, traj):
         '''calculate return (cumulative reward) of a trajectory (could be any number of timesteps)'''
         #TODO should take in a trajectory and output a scalar cumulative reward estimate
-        
+        reward = 0
+        for state in traj:
+            reward += self.reward_net.forward(torch.tensor(state))
+
+        return reward
 
 
 

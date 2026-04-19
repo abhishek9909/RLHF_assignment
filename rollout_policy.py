@@ -54,7 +54,8 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-2)
     parser.add_argument('--checkpoint', type=str, default='', help="pretrained policy weights")
     parser.add_argument('--num_rollouts', type=int, default=1)
-    
+    parser.add_argument('--return-dir', type=str, default=None)
+
     args = parser.parse_args()
 
     checkpoint = args.checkpoint
@@ -69,8 +70,20 @@ if __name__ == '__main__':
     policy.load_state_dict(torch.load(checkpoint))
     
     returns = 0
+    return_dict = []
     for i in range(args.num_rollouts):
         _, cum_ret = generate_rollout(policy, env, rendering=args.render)
         print("cumulative return", cum_ret)
         returns += cum_ret
+        return_dict.append(cum_ret)
+
     print("average return", returns/args.num_rollouts)
+    if args.return_dir:
+        import os
+        os.makedirs(args.return_dir, exist_ok=True)
+        file = f"{args.return_dir}/log.txt"
+
+        with open(file, "w") as f:
+            for i, ret in enumerate(return_dict):
+                f.write(f"rollout {i}: {ret}\n")
+            f.write(f"average return: {returns / args.num_rollouts}\n")

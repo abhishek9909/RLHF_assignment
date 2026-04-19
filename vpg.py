@@ -21,10 +21,14 @@ def reward_to_go(rews):
 
 #function to train a vanilla policy gradient agent. By default designed to work with Cartpole
 def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2, 
-          epochs=50, batch_size=5000, render=False, reward=None, checkpoint = False, checkpoint_dir = "\."):
+          epochs=50, batch_size=5000, render=False, reward=None, checkpoint = False, checkpoint_dir = "\.", log_dir = None):
 
     # make environment, check spaces, get obs / act dims
-    env = gym.make(env_name)
+    if args.render:
+        env = gym.make(env_name, render_mode="human")
+    else:
+        env = gym.make(env_name)
+
     assert isinstance(env.observation_space, Box), \
         "This example only works for envs with continuous state spaces."
     assert isinstance(env.action_space, Discrete), \
@@ -55,6 +59,10 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2,
 
     # for training policy
     def train_one_epoch():
+        nonlocal env
+        if render:
+            env.close()
+            env = gym.make(env_name, render_mode="human")
         # make some empty lists for logging.
         batch_obs = []          # for observations
         batch_acts = []         # for actions
@@ -105,13 +113,16 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2,
                 # the weight for each logprob(a_t|s_t) is reward-to-go from t
                 batch_weights += list(reward_to_go(ep_rews))
 
+                # won't render again this epoch
+                if not finished_rendering_this_epoch and render:
+                    env.close()
+                    finished_rendering_this_epoch = True
+                    env = gym.make(env_name)
+
                 # reset episode-specific variables
                 obs, _ = env.reset()
                 done = False
                 ep_rews = []
-
-                # won't render again this epoch
-                finished_rendering_this_epoch = True
 
                 # end experience loop if we have enough of it
                 if len(batch_obs) > batch_size:
@@ -131,11 +142,23 @@ def train(env_name='CartPole-v0', hidden_sizes=[32], lr=1e-2,
     for i in range(epochs):
         batch_loss, batch_rets, batch_lens = train_one_epoch()
         if reward is not None:
-            print('epoch: %3d \t loss: %.3f \t predicted return: %.3f \t ep_len (gt reward): %.3f'%
+            response_str = ('epoch: %3d \t loss: %.3f \t predicted return: %.3f \t ep_len (gt reward): %.3f'%
                 (i, batch_loss, np.mean(batch_rets), np.mean(batch_lens)))
+            print(response_str)
+            if log_dir is not None:
+                file = f"{log_dir}/log.txt"
+                os.makedirs(log_dir, exist_ok=True)
+                with open(file, "a") as f:
+                    f.write(response_str + "\n")
         else:
-            print('epoch: %3d \t loss: %.3f \t return: %.3f \t ep_len: %.3f'%
+            response_str = ('epoch: %3d \t loss: %.3f \t return: %.3f \t ep_len: %.3f'%
                 (i, batch_loss, np.mean(batch_rets), np.mean(batch_lens)))
+            print(response_str)
+            if log_dir is not None:
+                file = f"{log_dir}/log.txt"
+                os.makedirs(log_dir, exist_ok=True)
+                with open(file, "a") as f:
+                    f.write(response_str + "\n")
             
         if checkpoint:
             #checkpoint after each epoch
@@ -158,6 +181,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint', action='store_true')
     parser.add_argument('--checkpoint_dir', type=str, default='\.')
     parser.add_argument('--reward_params', type=str, default='', help="parameters of learned reward function")
+    parser.add_argument('--log-dir', type=str, default=None)
     args = parser.parse_args()
     
     
@@ -171,7 +195,7 @@ if __name__ == '__main__':
         #train on ground-truth reward function
         train(env_name=args.env_name, render=args.render, lr=args.lr, 
               epochs=args.epochs, checkpoint=args.checkpoint, 
-              checkpoint_dir=args.checkpoint_dir)
+              checkpoint_dir=args.checkpoint_dir, log_dir=args.log_dir)
     else:
         #pass in parameters for trained reward network and train using that
         print("training on learned reward function")
@@ -181,4 +205,4 @@ if __name__ == '__main__':
         reward_net.to(device)
         train(env_name=args.env_name, render=args.render, lr=args.lr, 
               epochs=args.epochs, reward=reward_net, checkpoint=args.checkpoint, 
-              checkpoint_dir=args.checkpoint_dir)
+              checkpoint_dir=args.checkpoint_dir, log_dir=args.log_dir)

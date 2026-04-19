@@ -13,16 +13,13 @@ from utils import mlp, Net
 def generate_novice_demos(env):
     checkpoints = []
     for i in range(10):
-        checkpoints.append("./synthetic/policy_checkpoint"+str(i)+".params")
+        checkpoints.append("./synthetic_0/policy_checkpoint"+str(i)+".params")
 
     # make core of policy network
     env = gym.make("CartPole-v0")
     obs_dim = env.observation_space.shape[0]
     n_acts = env.action_space.n
     hidden_sizes=[32]
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    
-
 
     demonstrations = []
     demo_returns = []
@@ -78,9 +75,10 @@ def predict_traj_return(net, traj):
     
 
 # Train the network
-def learn_reward(reward_network, optimizer, training_inputs, training_outputs, num_iter, checkpoint_dir):
+def learn_reward(optimizer, training_inputs, training_outputs, num_iter, checkpoint_dir):
     #check if gpu available
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("mps" if torch.cuda.is_available() else "cpu")
     
     #We will use a cross entropy loss for pairwise preference learning
     loss_criterion = nn.CrossEntropyLoss()
@@ -93,8 +91,16 @@ def learn_reward(reward_network, optimizer, training_inputs, training_outputs, n
     # Hint: You may find torch.cat useful.
     # Hint: You may also find unsqueeze useful. For example, if x is the tensor [1,2,3] (which has shape [3]), then x.unsqueeze(0) returns [[1,2,3]] (which has shape [1,3])
 
-
-
+    for _ in range(num_iter):
+        for trajectory_pair, expected_label in list(zip(training_inputs, training_outputs)):
+            optimizer.zero_grad()
+            reward_0 = reward_net.predict_return(trajectory_pair[0])
+            reward_1 = reward_net.predict_return(trajectory_pair[1])
+            logit_tensor = torch.cat((reward_0, reward_1), 0).unsqueeze(0)
+            label_tensor = torch.tensor([expected_label], dtype = torch.long)
+            loss = loss_criterion(logit_tensor, label_tensor)
+            loss.backward()
+            optimizer.step()
 
     #After training we save the reward function weights    
     print("checkpointing")
@@ -120,7 +126,9 @@ if __name__=="__main__":
 
     # Now we create a reward network and optimize it using the training data.
     #TODO: You will need to code up Net in utils.py   
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    device = torch.device("mps" if torch.cuda.is_available() else "cpu")
     reward_net = Net()
     reward_net.to(device)
 
@@ -128,7 +136,7 @@ if __name__=="__main__":
     import torch.optim as optim
     optimizer = optim.Adam(reward_net.parameters(),  lr=lr)
     #TODO: You will need to implement learn_reward, you can add arguments or do whatever you want
-    learn_reward(reward_net, optimizer, traj_pairs, traj_labels, num_iter, checkpoint)
+    learn_reward(optimizer, traj_pairs, traj_labels, num_iter, checkpoint)
 
 
     #debugging printout
